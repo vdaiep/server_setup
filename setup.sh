@@ -10,6 +10,37 @@ while true; do
   fi
 done
 
+current_timezone=$(timedatectl show --format='value' --property=Timezone)
+
+# Prompt for timezone change
+while true; do
+  echo "Current timezone is $current_timezone."
+  read -p "Change the server's timezone? (Y/n): " changetimezone_input
+
+  # Normalize input (convert to lowercase and remove leading/trailing spaces)
+  changetimezone_input=$(echo "$changetimezone_input" | tr '[:upper:]' '[:lower:]' | awk '{$1=$1};1')
+
+  if [[ $changetimezone_input == "y" || $changetimezone_input == "yes" ]]; then
+    changetimezone=true
+    break
+  elif [[ $changetimezone_input == "n" || $changetimezone_input == "no" ]]; then
+    changetimezone=false
+    break
+  fi
+done
+
+if [ "$changetimezone" = true ]; then
+  # Prompt for the new timezone
+  while true; do
+    read -p "Enter the desired timezone (ex. 'America/Los_Angeles'): " new_timezone
+    if timedatectl list-timezones | grep -q "^$new_timezone$"; then
+      break
+    else
+      echo "Invalid timezone, please try again."
+    fi
+  done
+fi
+
 # Prompt for creating a sudo user
 while true; do
   read -p "Create a sudo user? (Y/n): " createsudouser_input
@@ -216,15 +247,6 @@ done
 apt update
 apt upgrade -y
 
-# Change SSH port if requested
-if [ "$changesshport" = true ]; then
-  # Generate a random port between 49152 and 65535 (ephemeral ports range)
-  ssh_port=$(( (RANDOM % 16384) + 49152 ))
-  sed -i "s/^#*Port .*/Port $ssh_port/" /etc/ssh/sshd_config
-  systemctl restart sshd
-  echo "SSH port changed to $ssh_port"
-fi
-
 # Change hostname if provided
 if [ -n "$hostname" ]; then
   hostnamectl set-hostname "$hostname"
@@ -233,6 +255,20 @@ if [ -n "$hostname" ]; then
   fi
 fi
 
+# Change timezone if required
+if [ "$changetimezone" = true ]; then
+  timedatectl set-timezone "$new_timezone"
+  echo "Timezone changed to $new_timezone"
+fi
+
+# Change SSH port if requested
+if [ "$changesshport" = true ]; then
+  # Generate a random port between 49152 and 65535 (ephemeral ports range)
+  ssh_port=$(( (RANDOM % 16384) + 49152 ))
+  sed -i "s/^#*Port .*/Port $ssh_port/" /etc/ssh/sshd_config
+  systemctl restart sshd
+  echo "SSH port changed to $ssh_port"
+fi
 
 # Install Docker and Docker Compose if required
 if [ "$installdocker" = true ]; then
