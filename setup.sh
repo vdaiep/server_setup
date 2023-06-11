@@ -313,7 +313,11 @@ if [ "$installfirewall" = true ]; then
     apt install -y ufw
     ufw default deny incoming
     ufw default allow outgoing
-    ufw allow OpenSSH
+    if [ "$changesshport" = true ]; then
+      ufw allow $ssh_port
+    else
+      ufw allow OpenSSH
+    fi
     if [ "$webserver" = "nginx" ]; then
       ufw allow in "Nginx Full"
     fi
