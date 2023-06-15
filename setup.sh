@@ -359,7 +359,11 @@ fi
 
 # Install additional packages if required
 if [ "$installadditional" = true ]; then
-  apt install build-essential git python3-pip curl wget unzip htop vim tmux tree net-tools nmap fail2ban tcpdump python-is-python3
+  apt install build-essential git python3-pip curl wget unzip htop vim tmux tree net-tools nmap fail2ban tcpdump python-is-python3 apache2-utils
+  systemctl enable fail2ban
+  apt-get install auditd audispd-plugins
+  touch /etc/audit/rules.d/audit_commands.rules
+  echo -e '-a always,exit -F arch=b64 -S execve -k executed_commands\n-a always,exit -F arch=b32 -S execve -k executed_commands\n-w /var/log/wtmp -p wa -k logins\n-w /var/run/faillock/ -p wa -k logins' | sudo tee /etc/audit/rules.d/audit_commands.rules > /dev/null
 fi
 
 # Create sudo user or change root password
